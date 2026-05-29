@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bears Daily Trivia</title>
+    <title>Chicago Football Trivia</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS CDN Library -->
@@ -56,18 +56,16 @@
     <header class="w-full bg-gradient-to-b from-bearsNavy to-bearsDark border-b border-bearsOrange/30 py-4 px-6 sticky top-0 z-50 shadow-md">
         <div class="max-w-4xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <!-- Mascot / Helm SVG Icon -->
-                <div class="w-10 h-10 bg-bearsOrange rounded-full flex items-center justify-center shadow-md shadow-bearsOrange/20">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
-                    </svg>
-                </div>
+                <!-- Podcast Cover Art Image (Loaded dynamically from Apple Podcasts API with football fallback) -->
+                <img id="podcast-logo" 
+                     src="https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=120&auto=format&fit=crop&q=80" 
+                     class="w-12 h-12 rounded-xl object-cover shadow-md shadow-bearsOrange/20 border-2 border-bearsOrange/50 bg-bearsNavy transition-opacity duration-300" 
+                     alt="Take The North Cover Art">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-black uppercase tracking-wider text-white">
-                        Bears <span class="text-bearsOrange">Daily</span> Trivia
+                    <h1 class="text-lg md:text-2xl font-black uppercase tracking-wider text-white leading-none">
+                        Chicago <span class="text-bearsOrange font-black">Football</span> Trivia
                     </h1>
-                    <p class="text-[10px] uppercase text-gray-400 tracking-widest font-semibold">The Ultimate Chicago Huddle</p>
+                    <p class="text-[10px] uppercase text-gray-300 tracking-widest font-bold mt-1">From Take The North</p>
                 </div>
             </div>
             <!-- Active Date Badge -->
@@ -80,7 +78,7 @@
     <!-- Main Container -->
     <main class="flex-grow max-w-lg w-full mx-auto px-4 py-8 flex flex-col justify-center">
         
-        <!-- Live Alert Toast Banner -->
+        <!-- Live Alert Toast Banner (Custom notification system replacing 'alert()') -->
         <div id="custom-toast" class="hidden mb-4 p-4 rounded-xl border flex items-center gap-3 shadow-lg transform transition-all duration-300 fade-in">
             <span id="toast-icon" class="text-xl"></span>
             <p id="toast-message" class="text-sm font-medium"></p>
@@ -94,7 +92,7 @@
         <!-- SCREEN 1: GATEKEEPER (Email/Username Form) -->
         <div id="screen-gatekeeper" class="hidden bg-gradient-to-b from-bearsLightNavy to-bearsNavy rounded-2xl border border-white/10 p-6 md:p-8 shadow-2xl shadow-black/80 fade-in">
             <div class="text-center mb-6">
-                <span class="inline-block text-4xl mb-2">🐻</span>
+                <span class="inline-block text-4xl mb-2">🏈</span>
                 <h2 class="text-2xl font-bold text-white">Enter the Gridiron</h2>
                 <p class="text-sm text-gray-300 mt-1">Submit your name and email to play today's game and claim your spot on the live daily leaderboard!</p>
             </div>
@@ -191,7 +189,7 @@
 
             <!-- Daily Huddle Message -->
             <p class="text-center text-xs text-gray-400 italic">
-                Come back tomorrow at midnight for another official Bears trivia challenge! 🏈🐻
+                Come back tomorrow at midnight for another official Chicago football trivia challenge! 🏈🐻
             </p>
         </div>
 
@@ -252,10 +250,10 @@
     <footer class="w-full bg-bearsDark py-4 border-t border-white/5 px-6">
         <div class="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 text-[10px] uppercase text-gray-500 tracking-wider font-semibold text-center md:text-left">
             <div>
-                © 2026 Bears Daily Trivia. All rights reserved.
+                © 2026 Audacy. All rights reserved.
             </div>
             <div>
-                Built for diehard Chicago fans. Not affiliated with the NFL or the Chicago Bears.
+                Not affiliated with the NFL or the Chicago Bears.
             </div>
         </div>
     </footer>
@@ -380,13 +378,40 @@
         document.getElementById('date-badge').innerText = displayDate;
 
         /*************************************************************
-         * 4. BACKUP FALLBACK QUESTION DATA (For instant Sandbox testing)
+         * 4. DYNAMIC PODCAST ARTWORK HARVESTER (Bypassing CORS filters)
+         *************************************************************/
+        async function fetchPodcastArtwork() {
+            try {
+                addLog("Fetching official Take The North cover art via secure CORS proxy...");
+                const targetUrl = 'https://itunes.apple.com/lookup?id=1639200604';
+                
+                // Using allorigins.win free CORS proxy to download the data securely
+                const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+                const wrapper = await response.json();
+                
+                // Parse wrapped contents safely
+                const data = JSON.parse(wrapper.contents);
+                
+                if (data.results && data.results.length > 0) {
+                    const artworkUrl = data.results[0].artworkUrl600;
+                    if (artworkUrl) {
+                        document.getElementById('podcast-logo').src = artworkUrl;
+                        addLog("Successfully synced high-resolution cover art from Apple Podcasts!");
+                    }
+                }
+            } catch (err) {
+                addLog(`Note: Dynamic artwork bypass query failed (${err.message}). Using system fallback.`, false);
+            }
+        }
+
+        /*************************************************************
+         * 5. BACKUP FALLBACK QUESTION DATA (For instant Sandbox testing)
          *************************************************************/
         const localSandboxQuestions = {
             [todayStr]: {
                 id: 9999,
                 air_date: todayStr,
-                question: "Which iconic Chicago Bears legend was nicknamed 'The Galloping Ghost' and revolutionized pro football in 1925?",
+                question: "Which iconic Chicago football legend was nicknamed 'The Galloping Ghost' and revolutionized pro football in 1925?",
                 options: ["Walter Payton", "Red Grange", "Bronko Nagurski", "Sid Luckman"],
                 correct_answer: "Red Grange",
                 fun_fact: "Harold 'Red' Grange earned the moniker 'The Galloping Ghost' for his unmatched speed and elusive runs. His legendary contract signing in 1925 brought legitimacy, massive crowds, and nationwide attention to pro football!"
@@ -412,7 +437,7 @@
         ];
 
         /*************************************************************
-         * 5. APP NAVIGATION FLOW CONTROL
+         * 6. APP NAVIGATION FLOW CONTROL
          *************************************************************/
         function showScreen(screenId) {
             document.getElementById('screen-gatekeeper').classList.add('hidden');
@@ -449,9 +474,12 @@
         }
 
         /*************************************************************
-         * 6. INITIAL ENGINE BOOTSTRAP (RUNS ON LOAD)
+         * 7. INITIAL ENGINE BOOTSTRAP (RUNS ON LOAD)
          *************************************************************/
         window.addEventListener('DOMContentLoaded', async () => {
+            // Dynamic Artwork Harvester Hook with CORS Bypass
+            fetchPodcastArtwork();
+
             if (isDemoMode) {
                 document.getElementById('demo-banner').classList.remove('hidden');
             }
@@ -489,7 +517,7 @@
         });
 
         /*************************************************************
-         * 7. DATABASE ACTIONS (SUPABASE VS SANDBOX CONTROLLER)
+         * 8. DATABASE ACTIONS (SUPABASE VS SANDBOX CONTROLLER)
          *************************************************************/
         async function getDailyQuestion() {
             if (isDemoMode || !dbClient) {
@@ -514,7 +542,6 @@
                     document.getElementById('diag-query').className = "text-red-400 font-bold";
                     addLog(`DATABASE WARNING: Connected to Supabase, but found NO question mapped to the exact 'air_date' = '${todayStr}'. Double-check your table values!`, true);
                     
-                    // Fall back so developer can still see page structure
                     return localSandboxQuestions[todayStr] || defaultSandboxFallback;
                 }
 
@@ -612,7 +639,7 @@
         }
 
         /*************************************************************
-         * 8. USER MANAGEMENT & FORM HANDLING (GATEKEEPER)
+         * 9. USER MANAGEMENT & FORM HANDLING (GATEKEEPER)
          *************************************************************/
         document.getElementById('gatekeeper-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -638,11 +665,11 @@
             localStorage.setItem('bears_trivia_registered_user', JSON.stringify(currentUser));
             setupTriviaGame();
             showScreen('screen-gameplay');
-            showNotification(`Welcome to the Bears Huddle, ${safeUsername}!`, "success");
+            showNotification(`Welcome to the Huddle, ${safeUsername}!`, "success");
         });
 
         /*************************************************************
-         * 9. GAMEPLAY & LOCKOUT ENGINE
+         * 10. GAMEPLAY & LOCKOUT ENGINE
          *************************************************************/
         function setupTriviaGame() {
             const questionElement = document.getElementById('question-text');
@@ -731,7 +758,7 @@
                 <div class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wide">
                     The Answer was: <span class="text-white">${currentQuestion.correct_answer}</span>
                 </div>
-                <div>${currentQuestion.fun_fact || 'Chicago Bears huddle breakdown was registered.'}</div>
+                <div>${currentQuestion.fun_fact || 'Chicago huddle breakdown was registered.'}</div>
             `;
             
             factBox.classList.remove('hidden');
@@ -745,7 +772,7 @@
         });
 
         /*************************************************************
-         * 10. LEADERBOARD RENDERING & SHARE LOGIC
+         * 11. LEADERBOARD RENDERING & SHARE LOGIC
          *************************************************************/
         async function renderLeaderboard() {
             const listContainer = document.getElementById('leaderboard-list');
@@ -819,7 +846,7 @@
             if (!lastPlayedResult) return;
 
             const iconResult = lastPlayedResult.isCorrect ? "🟩 (1/1) TD!" : "🟥 (0/1) Turn over.";
-            const shareText = `Bears Daily Trivia 🐻🏈\nDate: ${displayDate}\nResult: ${iconResult}\nPlay & defend your turf at: ${window.location.href}`;
+            const shareText = `Chicago Football Trivia 🐻🏈\nDate: ${displayDate}\nResult: ${iconResult}\nPlay & defend your turf at: ${window.location.href}`;
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(shareText)
