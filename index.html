@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS CDN Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-   
+    
     <!-- Custom Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -79,8 +79,8 @@
 
     <!-- Main Container -->
     <main class="flex-grow max-w-lg w-full mx-auto px-4 py-8 flex flex-col justify-center">
-       
-        <!-- Live Alert Toast Banner (Custom notification system replacing 'alert()') -->
+        
+        <!-- Live Alert Toast Banner -->
         <div id="custom-toast" class="hidden mb-4 p-4 rounded-xl border flex items-center gap-3 shadow-lg transform transition-all duration-300 fade-in">
             <span id="toast-icon" class="text-xl"></span>
             <p id="toast-message" class="text-sm font-medium"></p>
@@ -102,13 +102,13 @@
             <form id="gatekeeper-form" class="space-y-4">
                 <div>
                     <label class="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5" for="username">Username</label>
-                    <input type="text" id="username" required minlength="3" maxlength="15"
+                    <input type="text" id="username" required minlength="3" maxlength="15" 
                            class="w-full bg-bearsDark/50 border border-white/20 focus:border-bearsOrange rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bearsOrange/30 transition"
                            placeholder="Ditka85_Legend">
                 </div>
                 <div>
                     <label class="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5" for="email">Email Address</label>
-                    <input type="email" id="email" required
+                    <input type="email" id="email" required 
                            class="w-full bg-bearsDark/50 border border-white/20 focus:border-bearsOrange rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bearsOrange/30 transition"
                            placeholder="coach@chicago.com">
                 </div>
@@ -206,6 +206,48 @@
 
     </main>
 
+    <!-- LIVE DIAGNOSTICS DEBUGER PANEL (COLLAPSIBLE) -->
+    <section class="max-w-lg w-full mx-auto px-4 mb-6">
+        <div class="bg-slate-900 border border-dashed border-bearsOrange/60 rounded-xl p-4 shadow-xl">
+            <button onclick="document.getElementById('diagnostics-body').classList.toggle('hidden')" class="w-full flex items-center justify-between text-left text-xs uppercase tracking-widest font-black text-bearsOrange">
+                <span>🔧 Huddle Diagnostics & Log Console</span>
+                <span class="text-[10px] text-gray-400 font-normal">Click to show/hide details</span>
+            </button>
+            
+            <div id="diagnostics-body" class="mt-3 space-y-2 text-xs font-mono border-t border-white/10 pt-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Current Local Game Date:</span>
+                    <span id="diag-date" class="text-white font-bold">Checking...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Demo/Sandbox Flag:</span>
+                    <span id="diag-mode" class="text-amber-400">Checking...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Supabase URL Format Check:</span>
+                    <span id="diag-url-check" class="text-white">Checking...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Supabase Key Format Check:</span>
+                    <span id="diag-key-check" class="text-white">Checking...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Connection Status:</span>
+                    <span id="diag-conn" class="text-white">Idle...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Question Search Status:</span>
+                    <span id="diag-query" class="text-white">Idle...</span>
+                </div>
+                
+                <!-- Expanded system logs console box -->
+                <div class="mt-2 bg-black/50 border border-white/5 p-2 rounded-lg text-[10px] text-red-400 max-h-32 overflow-y-auto" id="diag-console-log">
+                    [System Log Console: Awaiting operational test...]
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer class="w-full bg-bearsDark py-4 border-t border-white/5 px-6">
         <div class="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 text-[10px] uppercase text-gray-500 tracking-wider font-semibold text-center md:text-left">
@@ -227,29 +269,97 @@
          * 1. CONFIGURATION BLOCK
          * Paste your live Supabase Credentials inside this block.
          *************************************************************/
-        const SUPABASE_URL = "[https://ywbtrqgbgecvugzrrasc.supabase.co](https://ywbtrqgbgecvugzrrasc.supabase.co)";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YnRycWdiZ2VjdnVnenJyYXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjUyNTAsImV4cCI6MjA5NTY0MTI1MH0.S4IRACZIniNYXGQx13uLmt887PqZPOpL-3domzGvvlg";
+        const SUPABASE_URL = "YOUR_SUPABASE_URL";
+        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
-        // Detect if credentials are placeholders. If so, automatically enable Sandbox Demo Mode.
-        const isDemoMode = (SUPABASE_URL === "YOUR_SUPABASE_URL" || SUPABASE_ANON_KEY === "YOUR_SUPABASE_ANON_KEY");
-       
+        /*************************************************************
+         * 2. DIAGNOSTIC EVALUATION SYSTEM
+         *************************************************************/
+        const consoleLogBox = document.getElementById('diag-console-log');
+        function addLog(msg, isError = false) {
+            const time = new Date().toLocaleTimeString();
+            const logLine = document.createElement('div');
+            logLine.className = isError ? 'text-red-400 font-bold' : 'text-gray-300';
+            logLine.innerText = `[${time}] ${msg}`;
+            consoleLogBox.appendChild(logLine);
+            consoleLogBox.scrollTop = consoleLogBox.scrollHeight;
+        }
+
+        // Auto-examine URL & Key config errors
+        let isDemoMode = false;
+        
+        // Detect if credentials are placeholders or contain invalid copy-paste elements
+        if (SUPABASE_URL === "YOUR_SUPABASE_URL" || SUPABASE_ANON_KEY === "YOUR_SUPABASE_ANON_KEY") {
+            isDemoMode = true;
+            document.getElementById('diag-mode').innerText = "ENABLED (Using Fallback Questions)";
+            document.getElementById('diag-mode').className = "text-amber-400 font-bold";
+            document.getElementById('diag-url-check').innerText = "Default Placeholder";
+            document.getElementById('diag-url-check').className = "text-amber-400";
+            document.getElementById('diag-key-check').innerText = "Default Placeholder";
+            document.getElementById('diag-key-check').className = "text-amber-400";
+            addLog("Using fallback demo mode because credentials are default placeholders.");
+        } else {
+            // Check for Markdown Rich-Text Link Copy Errors
+            const hasMarkdownUrl = SUPABASE_URL.includes('[') || SUPABASE_URL.includes('(') || SUPABASE_URL.includes(']');
+            const hasSpacesUrl = SUPABASE_URL.trim() !== SUPABASE_URL;
+            const hasMarkdownKey = SUPABASE_ANON_KEY.includes('[') || SUPABASE_ANON_KEY.includes('(');
+
+            if (hasMarkdownUrl) {
+                document.getElementById('diag-url-check').innerText = "⚠️ ERROR: Rich-text link copy-pasted!";
+                document.getElementById('diag-url-check').className = "text-red-400 font-black animate-pulse";
+                addLog("CRITICAL: Your SUPABASE_URL looks like markdown [link](url). Please edit the URL to be ONLY raw text inside the quotation marks!", true);
+                isDemoMode = true;
+            } else if (hasSpacesUrl) {
+                document.getElementById('diag-url-check').innerText = "⚠️ ERROR: Extraneous spaces detected!";
+                document.getElementById('diag-url-check').className = "text-red-400 font-black";
+                addLog("CRITICAL: Your SUPABASE_URL contains empty white space characters at the beginning or end. Clean this in your config!", true);
+                isDemoMode = true;
+            } else {
+                document.getElementById('diag-url-check').innerText = "✅ Formatted Cleanly";
+                document.getElementById('diag-url-check').className = "text-green-400 font-bold";
+            }
+
+            if (hasMarkdownKey) {
+                document.getElementById('diag-key-check').innerText = "⚠️ ERROR: Rich-text key copy-pasted!";
+                document.getElementById('diag-key-check').className = "text-red-400 font-black animate-pulse";
+                addLog("CRITICAL: Your SUPABASE_ANON_KEY contains markdown brackets. Clean it up to be only raw characters!", true);
+                isDemoMode = true;
+            } else if (SUPABASE_ANON_KEY.length < 20) {
+                document.getElementById('diag-key-check').innerText = "⚠️ Key Too Short";
+                document.getElementById('diag-key-check').className = "text-red-400 font-bold";
+                addLog("CRITICAL: Your SUPABASE_ANON_KEY is extremely short. Ensure you copied the entire key, not a truncated snippet!", true);
+                isDemoMode = true;
+            } else {
+                document.getElementById('diag-key-check').innerText = "✅ Formatted Cleanly";
+                document.getElementById('diag-key-check').className = "text-green-400 font-bold";
+            }
+        }
+
         let dbClient = null;
         if (!isDemoMode) {
             try {
                 // Initialize Supabase Client
-                dbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                dbClient = supabase.createClient(SUPABASE_URL.trim(), SUPABASE_ANON_KEY.trim());
+                document.getElementById('diag-conn').innerText = "INITIALIZED OK";
+                document.getElementById('diag-conn').className = "text-green-400 font-bold";
+                document.getElementById('diag-mode').innerText = "DISABLED (Connecting Live!)";
+                document.getElementById('diag-mode').className = "text-green-400 font-bold";
+                addLog("Database client initialized. Sending diagnostic connection ping...");
             } catch (err) {
-                console.error("Database connection failed. Entering sandbox mode.", err);
+                document.getElementById('diag-conn').innerText = "FAILED TO INITIALIZE";
+                document.getElementById('diag-conn').className = "text-red-400 font-bold";
+                addLog(`CRITICAL CLIENT ERROR: ${err.message}`, true);
+                isDemoMode = true;
             }
         }
 
         /*************************************************************
-         * 2. STATE AND UTILITIES
+         * 3. STATE AND UTILITIES
          *************************************************************/
-        let currentUser = null; // { email, username }
-        let currentQuestion = null; // { id, question, options, correct_answer, fun_fact }
+        let currentUser = null; 
+        let currentQuestion = null; 
         let playedToday = false;
-        let lastPlayedResult = null; // { isCorrect, selectedAnswer }
+        let lastPlayedResult = null; 
 
         // Calendar Date Setup (Local User Time)
         const d = new Date();
@@ -257,6 +367,9 @@
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         const todayStr = `${year}-${month}-${day}`;
+
+        document.getElementById('diag-date').innerText = todayStr;
+        addLog(`System local date evaluated as: ${todayStr}`);
 
         // Human-friendly format for header display
         const displayDate = d.toLocaleDateString('en-US', {
@@ -267,7 +380,7 @@
         document.getElementById('date-badge').innerText = displayDate;
 
         /*************************************************************
-         * 3. BACKUP FALLBACK QUESTION DATA (For instant Sandbox testing)
+         * 4. BACKUP FALLBACK QUESTION DATA (For instant Sandbox testing)
          *************************************************************/
         const localSandboxQuestions = {
             [todayStr]: {
@@ -299,7 +412,7 @@
         ];
 
         /*************************************************************
-         * 4. APP NAVIGATION FLOW CONTROL
+         * 5. APP NAVIGATION FLOW CONTROL
          *************************************************************/
         function showScreen(screenId) {
             document.getElementById('screen-gatekeeper').classList.add('hidden');
@@ -336,7 +449,7 @@
         }
 
         /*************************************************************
-         * 5. INITIAL ENGINE BOOTSTRAP (RUNS ON LOAD)
+         * 6. INITIAL ENGINE BOOTSTRAP (RUNS ON LOAD)
          *************************************************************/
         window.addEventListener('DOMContentLoaded', async () => {
             if (isDemoMode) {
@@ -353,7 +466,7 @@
             const dailyPlayToken = localStorage.getItem(`bears_trivia_played_${todayStr}`);
             if (dailyPlayToken) {
                 playedToday = true;
-                lastPlayedResult = JSON.parse(dailyPlayToken); // contains { isCorrect, answer }
+                lastPlayedResult = JSON.parse(dailyPlayToken); 
             }
 
             // C. Fetch Today's Question
@@ -365,29 +478,29 @@
 
             // D. Route to appropriate screen
             if (playedToday) {
-                // Instantly show results & leaderboard
                 renderLeaderboard();
                 showScreen('screen-leaderboard');
             } else if (!currentUser) {
-                // Must fill gatekeeper details first
                 showScreen('screen-gatekeeper');
             } else {
-                // Authenticated, ready to play
                 setupTriviaGame();
                 showScreen('screen-gameplay');
             }
         });
 
         /*************************************************************
-         * 6. DATABASE ACTIONS (SUPABASE VS SANDBOX CONTROLLER)
+         * 7. DATABASE ACTIONS (SUPABASE VS SANDBOX CONTROLLER)
          *************************************************************/
         async function getDailyQuestion() {
             if (isDemoMode || !dbClient) {
-                // Returns custom date-based question or default fallback
+                document.getElementById('diag-query').innerText = "DEMO FALLBACK USED";
+                document.getElementById('diag-query').className = "text-amber-400 font-bold";
+                addLog(`Demo Mode: Retrieving fallback question for Date=${todayStr}`);
                 return localSandboxQuestions[todayStr] || defaultSandboxFallback;
             }
 
             try {
+                addLog(`Querying database for today's date: ${todayStr}...`);
                 const { data, error } = await dbClient
                     .from('trivia_questions')
                     .select('*')
@@ -395,9 +508,34 @@
                     .maybeSingle();
 
                 if (error) throw error;
-                return data; // returns object or null if none loaded
+
+                if (!data) {
+                    document.getElementById('diag-query').innerText = "EMPTY (No Date Match)";
+                    document.getElementById('diag-query').className = "text-red-400 font-bold";
+                    addLog(`DATABASE WARNING: Connected to Supabase, but found NO question mapped to the exact 'air_date' = '${todayStr}'. Double-check your table values!`, true);
+                    
+                    // Fall back so developer can still see page structure
+                    return localSandboxQuestions[todayStr] || defaultSandboxFallback;
+                }
+
+                document.getElementById('diag-query').innerText = "SUCCESS (Live Question Loaded)";
+                document.getElementById('diag-query').className = "text-green-400 font-bold";
+                addLog(`DATABASE SUCCESS: Loaded today's question dynamically! Id: ${data.id}`);
+                return data; 
             } catch (err) {
-                console.error("Supabase Question Fetch Error. Reverting to backup fallback:", err);
+                document.getElementById('diag-query').innerText = "QUERY ERROR";
+                document.getElementById('diag-query').className = "text-red-400 font-bold";
+                
+                let detailedMessage = err.message || JSON.stringify(err);
+                if (err.code === "PGRST116") {
+                    detailedMessage = "Incorrect database response configuration (row count mismatched).";
+                } else if (err.message && err.message.includes("Failed to fetch")) {
+                    detailedMessage = "Network Request Blocked. Your API Key, URL, or CORS policies are blocking this app.";
+                }
+                
+                addLog(`DATABASE ERROR DURING QUERY: ${detailedMessage}`, true);
+                addLog("Falling back to pre-compiled local sandbox questions for interface rendering.");
+                
                 return localSandboxQuestions[todayStr] || defaultSandboxFallback;
             }
         }
@@ -406,7 +544,6 @@
             const timestamp = new Date().toISOString();
 
             if (isDemoMode || !dbClient) {
-                // Simulate saving in browser storage
                 const mockList = JSON.parse(localStorage.getItem(demoStorageKey)) || [...defaultDemoLeaderboard];
                 mockList.push({
                     username: currentUser.username,
@@ -418,7 +555,7 @@
             }
 
             try {
-                // Save to game_leaderboard
+                addLog(`Sending scoreboard metrics for ${currentUser.username}...`);
                 const { error } = await dbClient
                     .from('game_leaderboard')
                     .insert({
@@ -429,15 +566,18 @@
                     });
 
                 if (error) {
-                    if (error.code === '23505') { // Duplicate unique key handler
+                    if (error.code === '23505') { 
                         showNotification("Duplicate check flag: Looks like you have already recorded a score today!", "error");
+                        addLog("Leaderboard insert skipped: User duplicate score prevented via unique database constraints.");
                     } else {
                         throw error;
                     }
+                } else {
+                    addLog("Leaderboard score committed successfully to Supabase!");
                 }
                 return true;
             } catch (err) {
-                console.error("Failed to write result to database:", err);
+                addLog(`FAILED TO SAVE SCORE: ${err.message}`, true);
                 showNotification("Score saved to local memory due to connection loss.", "info");
                 return false;
             }
@@ -445,7 +585,6 @@
 
         async function getTodayLeaderboard() {
             if (isDemoMode || !dbClient) {
-                // Read from simulated storage
                 const mockList = localStorage.getItem(demoStorageKey);
                 if (mockList) {
                     return JSON.parse(mockList);
@@ -456,7 +595,7 @@
             }
 
             try {
-                // Fetch players for today
+                addLog("Fetching leaderboard metrics for today...");
                 const { data, error } = await dbClient
                     .from('game_leaderboard')
                     .select('username, is_correct, created_at')
@@ -464,15 +603,16 @@
                     .order('created_at', { ascending: true });
 
                 if (error) throw error;
+                addLog(`Leaderboard loaded: ${data ? data.length : 0} entries retrieved.`);
                 return data || [];
             } catch (err) {
-                console.error("Supabase Leaderboard Fetch Error:", err);
-                return defaultDemoLeaderboard; // fallback gracefully to mock details during outage
+                addLog(`LEADERBOARD LOAD ERROR: ${err.message}`, true);
+                return defaultDemoLeaderboard; 
             }
         }
 
         /*************************************************************
-         * 7. USER MANAGEMENT & FORM HANDLING (GATEKEEPER)
+         * 8. USER MANAGEMENT & FORM HANDLING (GATEKEEPER)
          *************************************************************/
         document.getElementById('gatekeeper-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -484,7 +624,6 @@
                 return;
             }
 
-            // Sanitize Username (No space, alphanumeric only)
             const safeUsername = usernameInput.replace(/[^a-zA-Z0-9_]/g, '');
             if (safeUsername.length < 3) {
                 showNotification("Username must contain at least 3 alphanumeric characters.", "error");
@@ -496,31 +635,41 @@
                 username: safeUsername
             };
 
-            // Save user profile locally
             localStorage.setItem('bears_trivia_registered_user', JSON.stringify(currentUser));
-
-            // Proceed to play!
             setupTriviaGame();
             showScreen('screen-gameplay');
             showNotification(`Welcome to the Bears Huddle, ${safeUsername}!`, "success");
         });
 
         /*************************************************************
-         * 8. GAMEPLAY & LOCKOUT ENGINE
+         * 9. GAMEPLAY & LOCKOUT ENGINE
          *************************************************************/
         function setupTriviaGame() {
             const questionElement = document.getElementById('question-text');
             const optionsContainer = document.getElementById('options-container');
             const factBox = document.getElementById('fact-box');
 
-            // Set question text
             questionElement.innerText = currentQuestion.question;
-
-            // Generate answers
             optionsContainer.innerHTML = '';
             factBox.classList.add('hidden');
 
-            currentQuestion.options.forEach(option => {
+            // Format check for question options (JSON parser validation safeguard)
+            let formattedOptions = [];
+            if (typeof currentQuestion.options === 'string') {
+                try {
+                    formattedOptions = JSON.parse(currentQuestion.options);
+                } catch (e) {
+                    addLog("Warning: options column is string format. Attempted auto-recovery conversion.", true);
+                    formattedOptions = currentQuestion.options.replace(/[\[\]"]/g, '').split(',');
+                }
+            } else if (Array.isArray(currentQuestion.options)) {
+                formattedOptions = currentQuestion.options;
+            } else {
+                addLog("CRITICAL: Options column in database contains an invalid JSON array!", true);
+                formattedOptions = ["Option A", "Option B", "Option C", "Option D"];
+            }
+
+            formattedOptions.forEach(option => {
                 const button = document.createElement('button');
                 button.className = "w-full bg-[#132A5C] hover:bg-[#1E3C7E] active:scale-[0.99] border border-white/10 text-white font-semibold py-4 px-5 rounded-xl text-left transition duration-150 ease-in-out shadow focus:outline-none flex items-center justify-between group";
                 button.innerHTML = `
@@ -535,8 +684,7 @@
         async function handleOptionSelection(selectedAnswer, clickedButton) {
             playedToday = true;
             const buttons = document.querySelectorAll('#options-container button');
-           
-            // Immediately lock all gameplay controls to guarantee one-shot status
+            
             buttons.forEach(btn => {
                 btn.disabled = true;
                 btn.classList.remove('hover:bg-[#1E3C7E]', 'active:scale-[0.99]');
@@ -545,20 +693,16 @@
             const isCorrect = (selectedAnswer === currentQuestion.correct_answer);
             lastPlayedResult = { isCorrect, answer: selectedAnswer };
 
-            // Save lockout state straight away to prevent reload cheating
             localStorage.setItem(`bears_trivia_played_${todayStr}`, JSON.stringify(lastPlayedResult));
 
-            // Visually update clicked and correct buttons
             buttons.forEach(btn => {
                 const btnText = btn.querySelector('span').innerText;
                 if (btnText === currentQuestion.correct_answer) {
-                    // Highlight correct in Green
                     btn.classList.add('bg-green-600/90', 'border-green-400', 'ring-2', 'ring-green-400/50');
                     btn.querySelector('span:last-child').innerHTML = "✅";
                     btn.querySelector('span:last-child').classList.remove('opacity-0');
                     btn.querySelector('span:last-child').classList.add('opacity-100');
                 } else if (btnText === selectedAnswer && !isCorrect) {
-                    // Highlight selected wrong choice in red
                     btn.classList.add('bg-red-600/90', 'border-red-400', 'ring-2', 'ring-red-400/50');
                     btn.querySelector('span:last-child').innerHTML = "❌";
                     btn.querySelector('span:last-child').classList.remove('opacity-0');
@@ -566,10 +710,8 @@
                 }
             });
 
-            // Trigger score submission
             await submitPlayResult(isCorrect, selectedAnswer);
 
-            // Populate Post-Game Fact-box
             const factBox = document.getElementById('fact-box');
             const factTitle = document.getElementById('fact-title');
             const factDesc = document.getElementById('fact-desc');
@@ -589,12 +731,10 @@
                 <div class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wide">
                     The Answer was: <span class="text-white">${currentQuestion.correct_answer}</span>
                 </div>
-                <div>${currentQuestion.fun_fact}</div>
+                <div>${currentQuestion.fun_fact || 'Chicago Bears huddle breakdown was registered.'}</div>
             `;
-           
+            
             factBox.classList.remove('hidden');
-           
-            // Smoothly auto-scroll to the analysis box
             factBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
 
@@ -605,14 +745,13 @@
         });
 
         /*************************************************************
-         * 9. LEADERBOARD RENDERING & SHARE LOGIC
+         * 10. LEADERBOARD RENDERING & SHARE LOGIC
          *************************************************************/
         async function renderLeaderboard() {
             const listContainer = document.getElementById('leaderboard-list');
             const scoreBadge = document.getElementById('player-score-badge');
             const accuracyBadge = document.getElementById('stadium-success-rate');
 
-            // Populate User Individual Score Card
             if (lastPlayedResult) {
                 if (lastPlayedResult.isCorrect) {
                     scoreBadge.innerText = "TOUCHDOWN! 🏈 (1/1)";
@@ -623,7 +762,6 @@
                 }
             }
 
-            // Fetch and organize today's submissions
             const rawSubmissions = await getTodayLeaderboard();
             listContainer.innerHTML = '';
 
@@ -637,14 +775,11 @@
                 return;
             }
 
-            // Calculations for accuracy rate
             const totalSubmissions = rawSubmissions.length;
             const correctCount = rawSubmissions.filter(s => s.is_correct === true).length;
             const accuracyPct = Math.round((correctCount / totalSubmissions) * 100);
             accuracyBadge.innerText = `${accuracyPct}%`;
 
-            // Sort so Correct Users are placed cleanly (or strictly Chronological descending)
-            // Daily trivia feels exciting when we list all responses ordered by play timestamp.
             const sortedSubmissions = [...rawSubmissions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
             sortedSubmissions.forEach((sub, idx) => {
@@ -652,11 +787,10 @@
                 containerDiv.className = "flex items-center justify-between p-4 transition-colors hover:bg-white/5";
 
                 const isMe = currentUser && (sub.username.toLowerCase() === currentUser.username.toLowerCase());
-               
+                
                 containerDiv.innerHTML = `
                     <div class="flex items-center gap-3">
                         <span class="text-xs font-bold text-gray-500 w-5 text-right">#${sortedSubmissions.length - idx}</span>
-                        <!-- Custom Player Avatar -->
                         <div class="w-8 h-8 rounded-full ${sub.is_correct ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'} flex items-center justify-center text-xs font-bold">
                             ${sub.username.substring(0, 2).toUpperCase()}
                         </div>
@@ -670,8 +804,8 @@
                         </div>
                     </div>
                     <div>
-                        ${sub.is_correct ?
-                            '<span class="bg-green-500/15 text-green-400 text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border border-green-500/30">SCORE</span>' :
+                        ${sub.is_correct ? 
+                            '<span class="bg-green-500/15 text-green-400 text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border border-green-500/30">SCORE</span>' : 
                             '<span class="bg-red-500/15 text-red-400 text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border border-red-500/30">MISSED</span>'
                         }
                     </div>
@@ -687,7 +821,6 @@
             const iconResult = lastPlayedResult.isCorrect ? "🟩 (1/1) TD!" : "🟥 (0/1) Turn over.";
             const shareText = `Bears Daily Trivia 🐻🏈\nDate: ${displayDate}\nResult: ${iconResult}\nPlay & defend your turf at: ${window.location.href}`;
 
-            // Robust multi-device copy mechanism
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(shareText)
                     .then(() => showNotification("Share scorecard copied to clipboard! Share on socials!", "success"))
@@ -719,3 +852,4 @@
     </script>
 </body>
 </html>
+
