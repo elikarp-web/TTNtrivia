@@ -56,9 +56,9 @@
     <header class="w-full bg-gradient-to-b from-bearsNavy to-bearsDark border-b border-bearsOrange/30 py-4 px-6 sticky top-0 z-50 shadow-md">
         <div class="max-w-4xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <!-- Podcast Cover Art Image (Loaded dynamically from Apple Podcasts API with football fallback) -->
+                <!-- Podcast Cover Art Image (Loads direct URL if provided, otherwise attempts dynamic lookup) -->
                 <img id="podcast-logo" 
-                     src="https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=120&auto=format&fit=crop&q=80" 
+                     src="https://s3-external-1.amazonaws.com/origin.castfire.com/image/661/0/0/0/0-8382443.jpg" 
                      class="w-12 h-12 rounded-xl object-cover shadow-md shadow-bearsOrange/20 border-2 border-bearsOrange/50 bg-bearsNavy transition-opacity duration-300" 
                      alt="Take The North Cover Art">
                 <div>
@@ -265,11 +265,12 @@
     <script>
         /*************************************************************
          * 1. CONFIGURATION BLOCK
-         * Paste your live Supabase Credentials inside this block.
+         * Paste your live credentials and links inside this huddle.
          *************************************************************/
         const SUPABASE_URL = "https://ywbtrqgbgecvugzrrasc.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YnRycWdiZ2VjdnVnenJyYXNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjUyNTAsImV4cCI6MjA5NTY0MTI1MH0.S4IRACZIniNYXGQx13uLmt887PqZPOpL-3domzGvvlg";
-// -----------------------------------------------------------
+        
+        // -----------------------------------------------------------
         // 🚨 100% RELIABLE COVER ART SYNC
         // Direct Amazon S3 image URL for Take The North cover art.
         // Standard images are NEVER blocked by CORS filters.
@@ -384,9 +385,16 @@
         document.getElementById('date-badge').innerText = displayDate;
 
         /*************************************************************
-         * 4. DYNAMIC PODCAST ARTWORK HARVESTER (Bypassing CORS filters)
+         * 4. DYNAMIC PODCAST ARTWORK HARVESTER
          *************************************************************/
         async function fetchPodcastArtwork() {
+            // Check if user defined a direct, hardcoded image link
+            if (PODCAST_LOGO_URL && PODCAST_LOGO_URL !== "YOUR_DIRECT_PODCAST_IMAGE_URL" && PODCAST_LOGO_URL.trim() !== "") {
+                document.getElementById('podcast-logo').src = PODCAST_LOGO_URL.trim();
+                addLog("Perfect Setup: Loaded direct custom cover artwork link successfully.");
+                return;
+            }
+
             try {
                 addLog("Fetching official Take The North cover art via secure CORS proxy...");
                 const targetUrl = 'https://itunes.apple.com/lookup?id=1639200604';
@@ -483,7 +491,7 @@
          * 7. INITIAL ENGINE BOOTSTRAP (RUNS ON LOAD)
          *************************************************************/
         window.addEventListener('DOMContentLoaded', async () => {
-            // Dynamic Artwork Harvester Hook with CORS Bypass
+            // Dynamic Artwork Harvester Hook with CORS Bypass & Direct Link support
             fetchPodcastArtwork();
 
             if (isDemoMode) {
@@ -884,5 +892,7 @@
         }
     </script>
 </body>
+</html>
+
 </html>
 
