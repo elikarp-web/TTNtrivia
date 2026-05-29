@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bears Daily Trivia</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS CDN Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bearsNavy: '#0B2265',
+                        bearsOrange: '#C83803',
+                        bearsDark: '#050D21',
+                        bearsLightNavy: '#123080',
+                        bearsSlate: '#1E293B'
+                    },
+                    fontFamily: {
+                        sans: ['System-UI', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth transitions */
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom scrollbar for leaderboard list */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(11, 34, 101, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #C83803;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-bearsDark text-gray-100 min-h-screen flex flex-col justify-between">
+
+    <!-- Header / Logo -->
+    <header class="w-full bg-gradient-to-b from-bearsNavy to-bearsDark border-b border-bearsOrange/30 py-4 px-6 sticky top-0 z-50 shadow-md">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <!-- Mascot / Helm SVG Icon -->
+                <div class="w-10 h-10 bg-bearsOrange rounded-full flex items-center justify-center shadow-md shadow-bearsOrange/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l9-5-9-5-9 5 9 5z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black uppercase tracking-wider text-white">
+                        Bears <span class="text-bearsOrange">Daily</span> Trivia
+                    </h1>
+                    <p class="text-[10px] uppercase text-gray-400 tracking-widest font-semibold">The Ultimate Chicago Huddle</p>
+                </div>
+            </div>
+            <!-- Active Date Badge -->
+            <div id="date-badge" class="bg-bearsNavy border border-bearsOrange/50 px-3 py-1.5 rounded-full text-xs font-bold text-bearsOrange tracking-wider shadow-inner shadow-black/50">
+                DATE: --/--/----
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-lg w-full mx-auto px-4 py-8 flex flex-col justify-center">
+       
+        <!-- Live Alert Toast Banner (Custom notification system replacing 'alert()') -->
+        <div id="custom-toast" class="hidden mb-4 p-4 rounded-xl border flex items-center gap-3 shadow-lg transform transition-all duration-300 fade-in">
+            <span id="toast-icon" class="text-xl"></span>
+            <p id="toast-message" class="text-sm font-medium"></p>
+        </div>
+
+        <!-- 0. Demo Mode Warning Banner -->
+        <div id="demo-banner" class="hidden mb-6 bg-amber-500/15 border-2 border-amber-500/50 rounded-xl p-3 text-center text-xs text-amber-200">
+            <span class="font-bold">⚙️ Running in Sandbox Demo Mode:</span> Connect your Supabase credentials inside the code's configuration block to link your live database!
+        </div>
+
+        <!-- SCREEN 1: GATEKEEPER (Email/Username Form) -->
+        <div id="screen-gatekeeper" class="hidden bg-gradient-to-b from-bearsLightNavy to-bearsNavy rounded-2xl border border-white/10 p-6 md:p-8 shadow-2xl shadow-black/80 fade-in">
+            <div class="text-center mb-6">
+                <span class="inline-block text-4xl mb-2">🐻</span>
+                <h2 class="text-2xl font-bold text-white">Enter the Gridiron</h2>
+                <p class="text-sm text-gray-300 mt-1">Submit your name and email to play today's game and claim your spot on the live daily leaderboard!</p>
+            </div>
+
+            <form id="gatekeeper-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5" for="username">Username</label>
+                    <input type="text" id="username" required minlength="3" maxlength="15"
+                           class="w-full bg-bearsDark/50 border border-white/20 focus:border-bearsOrange rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bearsOrange/30 transition"
+                           placeholder="Ditka85_Legend">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-gray-400 font-bold mb-1.5" for="email">Email Address</label>
+                    <input type="email" id="email" required
+                           class="w-full bg-bearsDark/50 border border-white/20 focus:border-bearsOrange rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bearsOrange/30 transition"
+                           placeholder="coach@chicago.com">
+                </div>
+                <button type="submit" class="w-full bg-bearsOrange hover:bg-orange-600 active:transform active:scale-[0.98] transition-all text-white font-bold py-3.5 rounded-xl uppercase tracking-wider shadow-lg shadow-bearsOrange/20 mt-2">
+                    Enter Stadium
+                </button>
+            </form>
+        </div>
+
+        <!-- SCREEN 2: GAMEPLAY SCREEN -->
+        <div id="screen-gameplay" class="hidden space-y-6 fade-in">
+            <!-- Game Board Wrapper -->
+            <div class="bg-gradient-to-b from-bearsLightNavy to-bearsNavy rounded-2xl border border-white/10 p-6 shadow-2xl shadow-black/80">
+                <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
+                    <span class="text-xs uppercase font-bold tracking-widest text-bearsOrange bg-bearsOrange/10 px-2.5 py-1 rounded-md">TODAY'S SNAP</span>
+                    <span class="text-xs text-gray-400">1 Play Only</span>
+                </div>
+
+                <div id="question-text" class="text-lg md:text-xl font-bold leading-relaxed mb-6">
+                    <!-- Loaded dynamically -->
+                </div>
+
+                <!-- Answer options grid -->
+                <div id="options-container" class="grid grid-cols-1 gap-3.5">
+                    <!-- Generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Lockout Info / Fact Display Box -->
+            <div id="fact-box" class="hidden bg-slate-900/90 border border-bearsOrange/40 rounded-2xl p-5 shadow-xl fade-in">
+                <div class="flex items-start gap-4">
+                    <div id="fact-icon" class="text-3xl">🏈</div>
+                    <div class="flex-1 space-y-2">
+                        <h4 id="fact-title" class="font-black uppercase tracking-wider text-sm">Play Result</h4>
+                        <p id="fact-desc" class="text-sm text-gray-300 leading-relaxed"></p>
+                        <button id="btn-to-leaderboard" class="mt-4 inline-flex items-center gap-2 bg-bearsOrange hover:bg-orange-600 transition text-white text-xs font-black uppercase tracking-widest py-2.5 px-5 rounded-lg shadow-md">
+                            Go To Leaderboard
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN 3: LEADERBOARD SCREEN -->
+        <div id="screen-leaderboard" class="hidden space-y-6 fade-in">
+            <!-- Match Analytics Header Cards -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-bearsLightNavy/40 border border-white/10 p-4 rounded-xl text-center shadow">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Your Play</span>
+                    <div id="player-score-badge" class="text-lg font-black mt-1">--</div>
+                </div>
+                <div class="bg-bearsLightNavy/40 border border-white/10 p-4 rounded-xl text-center shadow">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Today's Accuracy</span>
+                    <div id="stadium-success-rate" class="text-lg font-black text-bearsOrange mt-1">0%</div>
+                </div>
+            </div>
+
+            <!-- Main Leaderboard Card -->
+            <div class="bg-gradient-to-b from-bearsLightNavy to-bearsNavy rounded-2xl border border-white/10 overflow-hidden shadow-2xl shadow-black/80">
+                <div class="p-5 border-b border-white/10 flex items-center justify-between bg-bearsNavy/40">
+                    <div>
+                        <h3 class="font-bold text-white uppercase tracking-wider">Today's Active Leaders</h3>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-widest">Players active since midnight</p>
+                    </div>
+                    <button id="btn-share-score" class="bg-bearsOrange/10 hover:bg-bearsOrange hover:text-white transition-colors duration-200 border border-bearsOrange/30 text-bearsOrange font-black text-xs uppercase tracking-widest py-2 px-4 rounded-xl flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 10.742l4.74-2.42m0 0a3.51 3.51 0 10-3.038-4.99 3.5 3.5 0 003.038 4.99zm0 0l-4.74 2.42M12.68 13.5l-4.74 2.42m0 0a3.51 3.51 0 103.039 4.99 3.5 3.5 0 00-3.039-4.99z"></path></svg>
+                        Share Result
+                    </button>
+                </div>
+
+                <!-- Leaderboard Table List -->
+                <div id="leaderboard-list" class="max-h-72 overflow-y-auto divide-y divide-white/5">
+                    <!-- Populated Dynamically -->
+                    <div class="p-8 text-center text-gray-400 text-sm">
+                        Loading live fan statistics...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Huddle Message -->
+            <p class="text-center text-xs text-gray-400 italic">
+                Come back tomorrow at midnight for another official Bears trivia challenge! 🏈🐻
+            </p>
+        </div>
+
+        <!-- SCREEN 4: NO ACTIVE QUESTIONS STATE -->
+        <div id="screen-no-question" class="hidden bg-gradient-to-b from-bearsLightNavy to-bearsNavy rounded-2xl border border-white/10 p-8 text-center shadow-2xl shadow-black/80 fade-in">
+            <span class="text-5xl block mb-4">📢</span>
+            <h2 class="text-xl font-bold text-white uppercase tracking-wider">Coach Is Prepping The Playbook</h2>
+            <p class="text-sm text-gray-300 mt-2 max-w-sm mx-auto leading-relaxed">
+                We're currently writing fresh game questions. Please check back shortly or let the site creator know to set up today's contest!
+            </p>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full bg-bearsDark py-4 border-t border-white/5 px-6">
+        <div class="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 text-[10px] uppercase text-gray-500 tracking-wider font-semibold text-center md:text-left">
+            <div>
+                © 2026 Bears Daily Trivia. All rights reserved.
+            </div>
+            <div>
+                Built for diehard Chicago fans. Not affiliated with the NFL or the Chicago Bears.
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT APP LOGIC & SUPABASE CONFIGURATION -->
+    <!-- ============================================ -->
+    <script>
+        /*************************************************************
+         * 1. CONFIGURATION BLOCK
+         * Paste your live Supabase Credentials inside this block.
+         *************************************************************/
+        const SUPABASE_URL = "YOUR_SUPABASE_URL";
+        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+        // Detect if credentials are placeholders. If so, automatically enable Sandbox Demo Mode.
+        const isDemoMode = (SUPABASE_URL === "YOUR_SUPABASE_URL" || SUPABASE_ANON_KEY === "YOUR_SUPABASE_ANON_KEY");
+       
+        let dbClient = null;
+        if (!isDemoMode) {
+            try {
+                // Initialize Supabase Client
+                dbClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } catch (err) {
+                console.error("Database connection failed. Entering sandbox mode.", err);
+            }
+        }
+
+        /*************************************************************
+         * 2. STATE AND UTILITIES
+         *************************************************************/
+        let currentUser = null; // { email, username }
+        let currentQuestion = null; // { id, question, options, correct_answer, fun_fact }
+        let playedToday = false;
+        let lastPlayedResult = null; // { isCorrect, selectedAnswer }
+
+        // Calendar Date Setup (Local User Time)
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        // Human-friendly format for header display
+        const displayDate = d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+        document.getElementById('date-badge').innerText = displayDate;
+
+        /*************************************************************
+         * 3. BACKUP FALLBACK QUESTION DATA (For instant Sandbox testing)
+         *************************************************************/
+        const localSandboxQuestions = {
+            [todayStr]: {
+                id: 9999,
+                air_date: todayStr,
+                question: "Which iconic Chicago Bears legend was nicknamed 'The Galloping Ghost' and revolutionized pro football in 1925?",
+                options: ["Walter Payton", "Red Grange", "Bronko Nagurski", "Sid Luckman"],
+                correct_answer: "Red Grange",
+                fun_fact: "Harold 'Red' Grange earned the moniker 'The Galloping Ghost' for his unmatched speed and elusive runs. His legendary contract signing in 1925 brought legitimacy, massive crowds, and nationwide attention to pro football!"
+            }
+        };
+
+        const defaultSandboxFallback = {
+            id: 9998,
+            air_date: 'Default',
+            question: "Who was the legendary running back nicknamed 'Sweetness' who held the NFL all-time rushing yardage record with the Bears?",
+            options: ["Gale Sayers", "Matt Forte", "Walter Payton", "Neal Anderson"],
+            correct_answer: "Walter Payton",
+            fun_fact: "Walter Payton played 13 seasons for the Bears, compiling 16,726 rushing yards, winning Super Bowl XX, and cementing himself as perhaps the most loved Chicago athlete of all time."
+        };
+
+        // Simulated Local Storage Database for Demo Sandbox Mode
+        const demoStorageKey = `bears_trivia_leaderboard_sim_${todayStr}`;
+        const defaultDemoLeaderboard = [
+            { username: "DitkaSausage85", is_correct: true, created_at: new Date(Date.now() - 3600000).toISOString() },
+            { username: "UrlacherLawn", is_correct: true, created_at: new Date(Date.now() - 7200000).toISOString() },
+            { username: "CalebCrews", is_correct: false, created_at: new Date(Date.now() - 10800000).toISOString() },
+            { username: "MonstersOfTheLake", is_correct: true, created_at: new Date(Date.now() - 14400000).toISOString() }
+        ];
+
+        /*************************************************************
+         * 4. APP NAVIGATION FLOW CONTROL
+         *************************************************************/
+        function showScreen(screenId) {
+            document.getElementById('screen-gatekeeper').classList.add('hidden');
+            document.getElementById('screen-gameplay').classList.add('hidden');
+            document.getElementById('screen-leaderboard').classList.add('hidden');
+            document.getElementById('screen-no-question').classList.add('hidden');
+
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function showNotification(msg, status = "info") {
+            const toast = document.getElementById('custom-toast');
+            const icon = document.getElementById('toast-icon');
+            const message = document.getElementById('toast-message');
+
+            message.innerText = msg;
+            toast.className = "mb-4 p-4 rounded-xl border flex items-center gap-3 shadow-lg transform transition-all duration-300 fade-in";
+
+            if (status === "success") {
+                toast.classList.add("bg-green-500/15", "border-green-500/50", "text-green-200");
+                icon.innerText = "🏈";
+            } else if (status === "error") {
+                toast.classList.add("bg-red-500/15", "border-red-500/50", "text-red-200");
+                icon.innerText = "❌";
+            } else {
+                toast.classList.add("bg-bearsNavy", "border-bearsOrange/50", "text-gray-200");
+                icon.innerText = "📢";
+            }
+
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 6000);
+        }
+
+        /*************************************************************
+         * 5. INITIAL ENGINE BOOTSTRAP (RUNS ON LOAD)
+         *************************************************************/
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (isDemoMode) {
+                document.getElementById('demo-banner').classList.remove('hidden');
+            }
+
+            // A. Check if user already registered
+            const cachedUser = localStorage.getItem('bears_trivia_registered_user');
+            if (cachedUser) {
+                currentUser = JSON.parse(cachedUser);
+            }
+
+            // B. Check if user already played today
+            const dailyPlayToken = localStorage.getItem(`bears_trivia_played_${todayStr}`);
+            if (dailyPlayToken) {
+                playedToday = true;
+                lastPlayedResult = JSON.parse(dailyPlayToken); // contains { isCorrect, answer }
+            }
+
+            // C. Fetch Today's Question
+            currentQuestion = await getDailyQuestion();
+            if (!currentQuestion) {
+                showScreen('screen-no-question');
+                return;
+            }
+
+            // D. Route to appropriate screen
+            if (playedToday) {
+                // Instantly show results & leaderboard
+                renderLeaderboard();
+                showScreen('screen-leaderboard');
+            } else if (!currentUser) {
+                // Must fill gatekeeper details first
+                showScreen('screen-gatekeeper');
+            } else {
+                // Authenticated, ready to play
+                setupTriviaGame();
+                showScreen('screen-gameplay');
+            }
+        });
+
+        /*************************************************************
+         * 6. DATABASE ACTIONS (SUPABASE VS SANDBOX CONTROLLER)
+         *************************************************************/
+        async function getDailyQuestion() {
+            if (isDemoMode || !dbClient) {
+                // Returns custom date-based question or default fallback
+                return localSandboxQuestions[todayStr] || defaultSandboxFallback;
+            }
+
+            try {
+                const { data, error } = await dbClient
+                    .from('trivia_questions')
+                    .select('*')
+                    .eq('air_date', todayStr)
+                    .maybeSingle();
+
+                if (error) throw error;
+                return data; // returns object or null if none loaded
+            } catch (err) {
+                console.error("Supabase Question Fetch Error. Reverting to backup fallback:", err);
+                return localSandboxQuestions[todayStr] || defaultSandboxFallback;
+            }
+        }
+
+        async function submitPlayResult(isCorrect, selectedAnswer) {
+            const timestamp = new Date().toISOString();
+
+            if (isDemoMode || !dbClient) {
+                // Simulate saving in browser storage
+                const mockList = JSON.parse(localStorage.getItem(demoStorageKey)) || [...defaultDemoLeaderboard];
+                mockList.push({
+                    username: currentUser.username,
+                    is_correct: isCorrect,
+                    created_at: timestamp
+                });
+                localStorage.setItem(demoStorageKey, JSON.stringify(mockList));
+                return true;
+            }
+
+            try {
+                // Save to game_leaderboard
+                const { error } = await dbClient
+                    .from('game_leaderboard')
+                    .insert({
+                        email: currentUser.email,
+                        username: currentUser.username,
+                        game_date: todayStr,
+                        is_correct: isCorrect
+                    });
+
+                if (error) {
+                    if (error.code === '23505') { // Duplicate unique key handler
+                        showNotification("Duplicate check flag: Looks like you have already recorded a score today!", "error");
+                    } else {
+                        throw error;
+                    }
+                }
+                return true;
+            } catch (err) {
+                console.error("Failed to write result to database:", err);
+                showNotification("Score saved to local memory due to connection loss.", "info");
+                return false;
+            }
+        }
+
+        async function getTodayLeaderboard() {
+            if (isDemoMode || !dbClient) {
+                // Read from simulated storage
+                const mockList = localStorage.getItem(demoStorageKey);
+                if (mockList) {
+                    return JSON.parse(mockList);
+                } else {
+                    localStorage.setItem(demoStorageKey, JSON.stringify(defaultDemoLeaderboard));
+                    return defaultDemoLeaderboard;
+                }
+            }
+
+            try {
+                // Fetch players for today
+                const { data, error } = await dbClient
+                    .from('game_leaderboard')
+                    .select('username, is_correct, created_at')
+                    .eq('game_date', todayStr)
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+                return data || [];
+            } catch (err) {
+                console.error("Supabase Leaderboard Fetch Error:", err);
+                return defaultDemoLeaderboard; // fallback gracefully to mock details during outage
+            }
+        }
+
+        /*************************************************************
+         * 7. USER MANAGEMENT & FORM HANDLING (GATEKEEPER)
+         *************************************************************/
+        document.getElementById('gatekeeper-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const usernameInput = document.getElementById('username').value.trim();
+            const emailInput = document.getElementById('email').value.trim();
+
+            if (!usernameInput || !emailInput) {
+                showNotification("Both fields are strictly required!", "error");
+                return;
+            }
+
+            // Sanitize Username (No space, alphanumeric only)
+            const safeUsername = usernameInput.replace(/[^a-zA-Z0-9_]/g, '');
+            if (safeUsername.length < 3) {
+                showNotification("Username must contain at least 3 alphanumeric characters.", "error");
+                return;
+            }
+
+            currentUser = {
+                email: emailInput.toLowerCase(),
+                username: safeUsername
+            };
+
+            // Save user profile locally
+            localStorage.setItem('bears_trivia_registered_user', JSON.stringify(currentUser));
+
+            // Proceed to play!
+            setupTriviaGame();
+            showScreen('screen-gameplay');
+            showNotification(`Welcome to the Bears Huddle, ${safeUsername}!`, "success");
+        });
+
+        /*************************************************************
+         * 8. GAMEPLAY & LOCKOUT ENGINE
+         *************************************************************/
+        function setupTriviaGame() {
+            const questionElement = document.getElementById('question-text');
+            const optionsContainer = document.getElementById('options-container');
+            const factBox = document.getElementById('fact-box');
+
+            // Set question text
+            questionElement.innerText = currentQuestion.question;
+
+            // Generate answers
+            optionsContainer.innerHTML = '';
+            factBox.classList.add('hidden');
+
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = "w-full bg-[#132A5C] hover:bg-[#1E3C7E] active:scale-[0.99] border border-white/10 text-white font-semibold py-4 px-5 rounded-xl text-left transition duration-150 ease-in-out shadow focus:outline-none flex items-center justify-between group";
+                button.innerHTML = `
+                    <span>${option}</span>
+                    <span class="opacity-0 group-hover:opacity-100 transition duration-150 text-bearsOrange">🏈</span>
+                `;
+                button.addEventListener('click', () => handleOptionSelection(option, button));
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        async function handleOptionSelection(selectedAnswer, clickedButton) {
+            playedToday = true;
+            const buttons = document.querySelectorAll('#options-container button');
+           
+            // Immediately lock all gameplay controls to guarantee one-shot status
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.remove('hover:bg-[#1E3C7E]', 'active:scale-[0.99]');
+            });
+
+            const isCorrect = (selectedAnswer === currentQuestion.correct_answer);
+            lastPlayedResult = { isCorrect, answer: selectedAnswer };
+
+            // Save lockout state straight away to prevent reload cheating
+            localStorage.setItem(`bears_trivia_played_${todayStr}`, JSON.stringify(lastPlayedResult));
+
+            // Visually update clicked and correct buttons
+            buttons.forEach(btn => {
+                const btnText = btn.querySelector('span').innerText;
+                if (btnText === currentQuestion.correct_answer) {
+                    // Highlight correct in Green
+                    btn.classList.add('bg-green-600/90', 'border-green-400', 'ring-2', 'ring-green-400/50');
+                    btn.querySelector('span:last-child').innerHTML = "✅";
+                    btn.querySelector('span:last-child').classList.remove('opacity-0');
+                    btn.querySelector('span:last-child').classList.add('opacity-100');
+                } else if (btnText === selectedAnswer && !isCorrect) {
+                    // Highlight selected wrong choice in red
+                    btn.classList.add('bg-red-600/90', 'border-red-400', 'ring-2', 'ring-red-400/50');
+                    btn.querySelector('span:last-child').innerHTML = "❌";
+                    btn.querySelector('span:last-child').classList.remove('opacity-0');
+                    btn.querySelector('span:last-child').classList.add('opacity-100');
+                }
+            });
+
+            // Trigger score submission
+            await submitPlayResult(isCorrect, selectedAnswer);
+
+            // Populate Post-Game Fact-box
+            const factBox = document.getElementById('fact-box');
+            const factTitle = document.getElementById('fact-title');
+            const factDesc = document.getElementById('fact-desc');
+            const factIcon = document.getElementById('fact-icon');
+
+            if (isCorrect) {
+                factIcon.innerText = "🎉";
+                factTitle.innerText = "Play Completed! (TOUCHDOWN)";
+                factTitle.className = "font-black uppercase tracking-wider text-sm text-green-400";
+            } else {
+                factIcon.innerText = "❌";
+                factTitle.innerText = "Incomplete Pass! (Turnover)";
+                factTitle.className = "font-black uppercase tracking-wider text-sm text-red-400";
+            }
+
+            factDesc.innerHTML = `
+                <div class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-wide">
+                    The Answer was: <span class="text-white">${currentQuestion.correct_answer}</span>
+                </div>
+                <div>${currentQuestion.fun_fact}</div>
+            `;
+           
+            factBox.classList.remove('hidden');
+           
+            // Smoothly auto-scroll to the analysis box
+            factBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        // Advance button event
+        document.getElementById('btn-to-leaderboard').addEventListener('click', () => {
+            renderLeaderboard();
+            showScreen('screen-leaderboard');
+        });
+
+        /*************************************************************
+         * 9. LEADERBOARD RENDERING & SHARE LOGIC
+         *************************************************************/
+        async function renderLeaderboard() {
+            const listContainer = document.getElementById('leaderboard-list');
+            const scoreBadge = document.getElementById('player-score-badge');
+            const accuracyBadge = document.getElementById('stadium-success-rate');
+
+            // Populate User Individual Score Card
+            if (lastPlayedResult) {
+                if (lastPlayedResult.isCorrect) {
+                    scoreBadge.innerText = "TOUCHDOWN! 🏈 (1/1)";
+                    scoreBadge.className = "text-md font-black mt-1 text-green-400";
+                } else {
+                    scoreBadge.innerText = "INCOMPLETE ❌ (0/1)";
+                    scoreBadge.className = "text-md font-black mt-1 text-red-400";
+                }
+            }
+
+            // Fetch and organize today's submissions
+            const rawSubmissions = await getTodayLeaderboard();
+            listContainer.innerHTML = '';
+
+            if (rawSubmissions.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="p-8 text-center text-gray-400 text-sm italic">
+                        Be the first to step onto the playing field today!
+                    </div>
+                `;
+                accuracyBadge.innerText = "0%";
+                return;
+            }
+
+            // Calculations for accuracy rate
+            const totalSubmissions = rawSubmissions.length;
+            const correctCount = rawSubmissions.filter(s => s.is_correct === true).length;
+            const accuracyPct = Math.round((correctCount / totalSubmissions) * 100);
+            accuracyBadge.innerText = `${accuracyPct}%`;
+
+            // Sort so Correct Users are placed cleanly (or strictly Chronological descending)
+            // Daily trivia feels exciting when we list all responses ordered by play timestamp.
+            const sortedSubmissions = [...rawSubmissions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            sortedSubmissions.forEach((sub, idx) => {
+                const containerDiv = document.createElement('div');
+                containerDiv.className = "flex items-center justify-between p-4 transition-colors hover:bg-white/5";
+
+                const isMe = currentUser && (sub.username.toLowerCase() === currentUser.username.toLowerCase());
+               
+                containerDiv.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-bold text-gray-500 w-5 text-right">#${sortedSubmissions.length - idx}</span>
+                        <!-- Custom Player Avatar -->
+                        <div class="w-8 h-8 rounded-full ${sub.is_correct ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'} flex items-center justify-center text-xs font-bold">
+                            ${sub.username.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                            <span class="font-bold text-sm ${isMe ? 'text-bearsOrange font-black' : 'text-gray-200'}">
+                                ${sub.username} ${isMe ? '(You)' : ''}
+                            </span>
+                            <span class="block text-[9px] text-gray-500 uppercase tracking-widest">
+                                ${new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        ${sub.is_correct ?
+                            '<span class="bg-green-500/15 text-green-400 text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border border-green-500/30">SCORE</span>' :
+                            '<span class="bg-red-500/15 text-red-400 text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full border border-red-500/30">MISSED</span>'
+                        }
+                    </div>
+                `;
+                listContainer.appendChild(containerDiv);
+            });
+        }
+
+        // Share button interaction
+        document.getElementById('btn-share-score').addEventListener('click', () => {
+            if (!lastPlayedResult) return;
+
+            const iconResult = lastPlayedResult.isCorrect ? "🟩 (1/1) TD!" : "🟥 (0/1) Turn over.";
+            const shareText = `Bears Daily Trivia 🐻🏈\nDate: ${displayDate}\nResult: ${iconResult}\nPlay & defend your turf at: ${window.location.href}`;
+
+            // Robust multi-device copy mechanism
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareText)
+                    .then(() => showNotification("Share scorecard copied to clipboard! Share on socials!", "success"))
+                    .catch(() => fallbackCopyHelper(shareText));
+            } else {
+                fallbackCopyHelper(shareText);
+            }
+        });
+
+        function fallbackCopyHelper(text) {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.position = "fixed";
+                textArea.style.opacity = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showNotification("Share scorecard copied to clipboard!", "success");
+            } catch (err) {
+                console.error("Copy failed: ", err);
+                showNotification("Failed to copy. Highlight details to share!", "error");
+            }
+        }
+    </script>
+</body>
+</html>
